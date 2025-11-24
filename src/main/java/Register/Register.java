@@ -4,6 +4,8 @@
 
 package Register;
 
+import Connect.DatabaseConnection;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.sql.*;
@@ -50,7 +52,7 @@ public class Register extends JFrame {
         Connection connection = null;
         try {
             //判断用户名是否存在
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test_lib", "root", "dy85111168");
+           connection= DatabaseConnection.getConnection();
             String query = "SELECT * FROM jformtest WHERE username = ?";
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 preparedStatement.setString(1, username);
@@ -73,10 +75,12 @@ public class Register extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "注册失败！", "错误", JOptionPane.ERROR_MESSAGE);
             return false;
+        }finally {
+            DatabaseConnection.closeConnection(connection);
         }
     }
 
-
+    //前端界面
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents  @formatter:off
         label1 = new JLabel();
