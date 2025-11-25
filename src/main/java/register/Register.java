@@ -1,5 +1,7 @@
 package register;
 
+import DAO.UserDAO;
+import Entity.User;
 import connect.DatabaseConnection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -9,10 +11,6 @@ import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * SWT 版本注册界面
@@ -32,6 +30,9 @@ public class Register {
     private Font titleFont;
     private Font normalFont;
     private Font btnFont;
+
+    // 数据库访问对象
+    private UserDAO userDAO = new UserDAO();
 
     /**
      * 打开窗口的方法
@@ -187,9 +188,22 @@ public class Register {
             return;
         }
 
-        if (registerUser(username, password)) {
-            showMessageBox("提示", "注册成功！", SWT.ICON_INFORMATION);
-            // 注册成功后可能需要关闭或者跳转
+        try {
+            // 检查用户名是否存在
+            if (userDAO.isUsernameExist(username)) {
+                showMessageBox("错误", "用户名已存在！", SWT.ICON_ERROR);
+                return;
+            }
+            User newUser = new User(username, password);
+            // 注册用户
+            if (userDAO.registerUser(newUser)) {
+                showMessageBox("提示", "注册成功！", SWT.ICON_INFORMATION);
+                backAction();
+            } else {
+                showMessageBox("错误", "注册失败，请重试！", SWT.ICON_ERROR);
+            }
+        } catch (Exception e) {
+            showMessageBox("错误", "注册过程中出现错误：" + e.getMessage(), SWT.ICON_ERROR);
         }
     }
 
@@ -201,36 +215,4 @@ public class Register {
         mb.open();
     }
 
-    // 数据库操作逻辑 (保持原有逻辑不变)
-    private boolean registerUser(String username, String password) {
-        Connection connection = null;
-        try {
-            connection = DatabaseConnection.getConnection();
-            // 判断用户名是否存在
-            String query = "SELECT * FROM user WHERE username = ?";
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setString(1, username);
-                ResultSet resultSet = preparedStatement.executeQuery();
-                if (resultSet.next()) {
-                    showMessageBox("错误", "用户名已存在！", SWT.ICON_ERROR);
-                    return false;
-                }
-            }
-
-            // 插入新用户
-            String insertQuery = "INSERT INTO user (username, password) VALUES (?, ?)";
-            try (PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
-                insertStatement.setString(1, username);
-                insertStatement.setString(2, password);
-                int rowsAffected = insertStatement.executeUpdate();
-                return rowsAffected > 0;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            showMessageBox("错误", "注册失败！\n" + e.getMessage(), SWT.ICON_ERROR);
-            return false;
-        } finally {
-            DatabaseConnection.closeConnection(connection);
-        }
-    }
 }

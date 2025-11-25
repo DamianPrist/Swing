@@ -1,5 +1,8 @@
 package login;
 
+import DAO.UserDAO;
+import Entity.User;
+import MainInterface.MainInterface;
 import connect.DatabaseConnection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -10,10 +13,6 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.*;
 import register.Register;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 
 /**
@@ -25,7 +24,11 @@ public class Login {
     protected Shell shell;
     private Text textUser;
     private Text textPassword;
-    private Font fontInput;         // 统一输入字体格式
+    private Font fontInput;// 统一输入字体格式
+
+    // 用户数据访问对象
+    private UserDAO userDAO = new UserDAO();
+    private User currentUser;
 
     /**
      * 打开窗口
@@ -143,36 +146,35 @@ public class Login {
      * 处理登录事件
      */
     private void handleLogin() {
-        String username = textUser.getText();
+        String username = textUser.getText().trim();
         String password = textPassword.getText();
 
-        if (validateUser(username, password)) {
-            showMessage("成功", "登录成功！", SWT.ICON_INFORMATION);
-        } else {
-            showMessage("失败", "登录失败，请检查用户名和密码！", SWT.ICON_ERROR);
+        // 输入验证
+        if (username.isEmpty() || password.isEmpty()) {
+            showMessage("错误", "请输入用户名和密码！", SWT.ICON_ERROR);
+            return;
+        }
+
+        try {
+            currentUser = userDAO.validateUser(username, password);
+            if (currentUser!= null) {
+                showMessage("成功", "登录成功！", SWT.ICON_INFORMATION);
+                // 关闭登录窗口
+                shell.dispose();
+                new MainInterface().open(); // 启动MainInterface
+            } else {
+                showMessage("失败", "登录失败，请检查用户名和密码！", SWT.ICON_ERROR);
+            }
+        } catch (Exception e) {
+            showMessage("错误", "登录过程中出现错误：" + e.getMessage(), SWT.ICON_ERROR);
         }
     }
 
     /**
-     * 数据库验证逻辑
+     * 获取当前登录用户
      */
-    private boolean validateUser(String username, String password) {
-        Connection connection = null;
-        try {
-            connection = DatabaseConnection.getConnection();
-            String query = "SELECT * FROM user WHERE username = ? AND password = ?";
-
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setString(1, username);
-                preparedStatement.setString(2, password);
-                ResultSet resultSet = preparedStatement.executeQuery();
-                return resultSet.next();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            showMessage("错误", "数据库连接或查询出现问题：" + e.getMessage(), SWT.ICON_ERROR);
-            return false;
-        }
+    public User getCurrentUser() {
+        return currentUser;
     }
 
     /**
