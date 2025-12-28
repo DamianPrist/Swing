@@ -1,7 +1,7 @@
 package DAO;
 
 import Entity.Score;
-import Entity.Student;
+//import Entity.Student;
 import connect.DatabaseConnection;
 
 import java.math.BigDecimal;
