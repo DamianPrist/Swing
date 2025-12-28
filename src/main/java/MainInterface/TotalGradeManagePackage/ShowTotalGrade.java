@@ -1,6 +1,11 @@
-package MainInterface.TotalGradeManagePackage;
 
+        package MainInterface.TotalGradeManagePackage;
+import DAO.ScoreDAO;
+import DAO.StudentDAO;
+import DAO.SubjectDAO;
 import Entity.Student;
+import Entity.Score;
+import Entity.Subject;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -11,24 +16,29 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 总成绩管理前端界面类
+ * 总成绩管理前端界面类 - 修改为支持多学科汇总
  */
 public class ShowTotalGrade {
 
     private Composite parent;
     private Table gradeTable;
-    private TotalGradeManage totalGradeManage;
+    private ScoreDAO scoreDAO;
+    private StudentDAO studentDAO;
+    private SubjectDAO subjectDAO;
     private Text searchText;
 
     // 分页相关变量
     private int currentPage = 1; // 当前页码
     private int pageSize = 10;   // 每页显示条数
     private int totalCount = 0;  // 总记录数
-    private List<Student> allStudents = new ArrayList<>(); // 所有学生数据
+    private List<StudentGradeSummary> allStudentGrades = new ArrayList<>(); // 所有学生成绩汇总数据
 
     // 分页控件
     private Label pageInfoLabel;
@@ -36,9 +46,64 @@ public class ShowTotalGrade {
     private Button nextPageButton;
     private Composite paginationComposite;
 
+    /**
+     * 学生成绩汇总类（内部类）
+     */
+    private static class StudentGradeSummary {
+        private String studentId;
+        private String studentName;
+        private String className;
+        private BigDecimal usualGrade;  // 平时成绩平均值
+        private BigDecimal examGrade;   // 考试成绩平均值
+        private BigDecimal totalGrade;  // 总成绩平均值
+        private int subjectCount;       // 学科数量
+
+        public StudentGradeSummary(String studentId, String studentName, String className) {
+            this.studentId = studentId;
+            this.studentName = studentName;
+            this.className = className;
+            this.usualGrade = BigDecimal.ZERO;
+            this.examGrade = BigDecimal.ZERO;
+            this.totalGrade = BigDecimal.ZERO;
+            this.subjectCount = 0;
+        }
+
+        public void addSubjectGrade(BigDecimal usual, BigDecimal exam, BigDecimal total) {
+            if (usual != null) {
+                this.usualGrade = this.usualGrade.add(usual);
+            }
+            if (exam != null) {
+                this.examGrade = this.examGrade.add(exam);
+            }
+            if (total != null) {
+                this.totalGrade = this.totalGrade.add(total);
+            }
+            this.subjectCount++;
+        }
+
+        public void calculateAverages() {
+            if (subjectCount > 0) {
+                this.usualGrade = this.usualGrade.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+                this.examGrade = this.examGrade.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+                this.totalGrade = this.totalGrade.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+            }
+        }
+
+        // Getters
+        public String getStudentId() { return studentId; }
+        public String getStudentName() { return studentName; }
+        public String getClassName() { return className; }
+        public BigDecimal getUsualGrade() { return subjectCount > 0 ? usualGrade : null; }
+        public BigDecimal getExamGrade() { return subjectCount > 0 ? examGrade : null; }
+        public BigDecimal getTotalGrade() { return subjectCount > 0 ? totalGrade : null; }
+        public int getSubjectCount() { return subjectCount; }
+    }
+
     public ShowTotalGrade(Composite parent) {
         this.parent = parent;
-        this.totalGradeManage = new TotalGradeManage();
+        this.scoreDAO = new ScoreDAO();
+        this.studentDAO = new StudentDAO();
+        this.subjectDAO = new SubjectDAO();
         createContent();
     }
 
@@ -65,8 +130,8 @@ public class ShowTotalGrade {
         // 创建按钮区域 - 只保留刷新按钮
         createButtonArea();
 
-        // 加载学生成绩数据
-        loadStudentGradeData();
+        // 加载学生成绩汇总数据
+        loadStudentGradeSummaryData();
     }
 
     /**
@@ -127,9 +192,11 @@ public class ShowTotalGrade {
         String keyword = searchText.getText().trim();
 
         if (keyword.isEmpty()) {
-            allStudents = totalGradeManage.getAllStudentsOrderByTotalGrade();
+            loadStudentGradeSummaryData();
         } else {
-            allStudents = totalGradeManage.searchStudentsOrderByTotalGrade(keyword);
+            // 搜索学生
+            List<Student> searchResults = studentDAO.searchStudents(keyword);
+            loadStudentGradeSummaryData(searchResults);
         }
 
         currentPage = 1; // 搜索后重置到第一页
@@ -137,14 +204,14 @@ public class ShowTotalGrade {
     }
 
     /**
-     * 创建表格区域 - 修改为填充整个可用空间
+     * 创建表格区域
      */
     private void createTableArea() {
-        // 创建表格容器 - 设置填充数据
+        // 创建表格容器
         Composite tableComposite = new Composite(parent, SWT.NONE);
         GridData tableCompositeData = new GridData(SWT.FILL, SWT.FILL, true, true);
-        tableCompositeData.minimumHeight = 350; // 增加最小高度
-        tableCompositeData.heightHint = 350; // 设置推荐高度
+        tableCompositeData.minimumHeight = 350;
+        tableCompositeData.heightHint = 350;
         tableComposite.setLayoutData(tableCompositeData);
 
         GridLayout tableLayout = new GridLayout(1, false);
@@ -152,7 +219,7 @@ public class ShowTotalGrade {
         tableLayout.marginHeight = 0;
         tableComposite.setLayout(tableLayout);
 
-        // 创建表格 - 设置填充数据
+        // 创建表格
         gradeTable = new Table(tableComposite, SWT.BORDER | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.H_SCROLL);
         GridData tableData = new GridData(SWT.FILL, SWT.FILL, true, true);
         tableData.minimumHeight = 300;
@@ -161,19 +228,16 @@ public class ShowTotalGrade {
         gradeTable.setLinesVisible(true);
         gradeTable.setFont(new Font(parent.getDisplay(), "微软雅黑", 11, SWT.NORMAL));
 
-        // 创建列：学号、姓名、班级、平时成绩、考试成绩、总成绩
-        String[] columns = {"学号", "姓名", "班级", "平时成绩", "考试成绩", "总成绩"};
-        // 修改列宽设置：让表格自动填充，使用动态调整
-        int[] columnWidths = {150, 120, 200, 120, 120, 120};
+        // 创建列：学号、姓名、班级、平均平时成绩、平均考试成绩、平均总成绩、学科数量
+        String[] columns = {"学号", "姓名", "班级", "平均平时成绩", "平均考试成绩", "平均总成绩", "学科数量"};
+        int[] columnWidths = {120, 120, 150, 120, 120, 120, 100};
 
         for (int i = 0; i < columns.length; i++) {
             TableColumn column = new TableColumn(gradeTable, SWT.CENTER);
             column.setText(columns[i]);
+            column.setWidth(columnWidths[i]);
             if (i == columns.length - 1) {
-                // 最后一列设置为可调整大小，自动填充剩余空间
                 column.setResizable(true);
-            } else {
-                column.setWidth(columnWidths[i]);
             }
         }
 
@@ -186,53 +250,22 @@ public class ShowTotalGrade {
     }
 
     /**
-     * 调整表格列宽，确保填满整个表格宽度
+     * 调整表格列宽
      */
     private void adjustTableColumns() {
         if (gradeTable.isDisposed()) {
             return;
         }
 
-        // 获取表格客户区宽度
         int tableWidth = gradeTable.getClientArea().width;
-
-        // 计算前5列的固定宽度
-        int fixedWidth = 150 + 120 + 200 + 120 + 120; // 学号150 + 姓名120 + 班级200 + 平时成绩120 + 考试成绩120
-
-        // 计算最后一列的宽度（剩余空间）
+        int fixedWidth = 120 + 120 + 150 + 120 + 120 + 120;
         int lastColumnWidth = tableWidth - fixedWidth;
 
-        // 确保最后一列有最小宽度
-        if (lastColumnWidth < 120) {
-            lastColumnWidth = 120;
-            // 如果表格太窄，需要重新分配宽度
-            if (tableWidth < 700) {
-                // 重新计算各列宽度，按比例分配
-                int[] newWidths = new int[6];
-                int totalColumns = 6;
-                int availableWidth = tableWidth - 20; // 减去一些边距
-
-                // 为每列分配宽度
-                newWidths[0] = (int)(availableWidth * 0.20); // 学号20%
-                newWidths[1] = (int)(availableWidth * 0.15); // 姓名15%
-                newWidths[2] = (int)(availableWidth * 0.25); // 班级25%
-                newWidths[3] = (int)(availableWidth * 0.15); // 平时成绩15%
-                newWidths[4] = (int)(availableWidth * 0.15); // 考试成绩15%
-                newWidths[5] = (int)(availableWidth * 0.10); // 总成绩10%
-
-                // 设置列宽
-                for (int i = 0; i < 6; i++) {
-                    TableColumn column = gradeTable.getColumn(i);
-                    if (column != null && !column.isDisposed()) {
-                        column.setWidth(newWidths[i]);
-                    }
-                }
-                return;
-            }
+        if (lastColumnWidth < 100) {
+            lastColumnWidth = 100;
         }
 
-        // 设置最后一列宽度
-        TableColumn lastColumn = gradeTable.getColumn(5);
+        TableColumn lastColumn = gradeTable.getColumn(6);
         if (lastColumn != null && !lastColumn.isDisposed()) {
             lastColumn.setWidth(lastColumnWidth);
         }
@@ -266,7 +299,7 @@ public class ShowTotalGrade {
         pageInfoLabel.setText("第 0 页 / 共 0 页 (共 0 条)");
         pageInfoLabel.setFont(new Font(parent.getDisplay(), "微软雅黑", 10, SWT.NORMAL));
 
-        GridData labelData = new GridData(180, SWT.DEFAULT); // 增加宽度以显示更多信息
+        GridData labelData = new GridData(180, SWT.DEFAULT);
         pageInfoLabel.setLayoutData(labelData);
 
         // 下一页按钮
@@ -285,7 +318,7 @@ public class ShowTotalGrade {
 
         Combo pageSizeCombo = new Combo(paginationComposite, SWT.DROP_DOWN | SWT.READ_ONLY);
         pageSizeCombo.setItems(new String[]{"10", "5", "7", "20"});
-        pageSizeCombo.select(0); // 默认选择10条
+        pageSizeCombo.select(0);
         pageSizeCombo.setFont(new Font(parent.getDisplay(), "微软雅黑", 10, SWT.NORMAL));
 
         GridData comboData = new GridData(60, SWT.DEFAULT);
@@ -317,14 +350,14 @@ public class ShowTotalGrade {
             @Override
             public void widgetSelected(SelectionEvent e) {
                 pageSize = Integer.parseInt(pageSizeCombo.getText());
-                currentPage = 1; // 切换每页条数后回到第一页
+                currentPage = 1;
                 refreshTableWithPagination();
             }
         });
     }
 
     /**
-     * 创建按钮区域 - 修改为只保留刷新按钮
+     * 创建按钮区域
      */
     private void createButtonArea() {
         Composite buttonComposite = new Composite(parent, SWT.NONE);
@@ -353,17 +386,58 @@ public class ShowTotalGrade {
         refreshButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                loadStudentGradeData();
+                loadStudentGradeSummaryData();
             }
         });
     }
 
     /**
-     * 加载学生成绩数据到表格
+     * 加载所有学生的成绩汇总数据
      */
-    private void loadStudentGradeData() {
-        // 重新从数据库加载数据，确保获取最新数据
-        allStudents = totalGradeManage.getAllStudentsOrderByTotalGrade();
+    private void loadStudentGradeSummaryData() {
+        List<Student> allStudents = studentDAO.getAllStudents();
+        loadStudentGradeSummaryData(allStudents);
+    }
+
+    /**
+     * 加载指定学生列表的成绩汇总数据
+     */
+    private void loadStudentGradeSummaryData(List<Student> students) {
+        allStudentGrades.clear();
+
+        // 获取所有学科
+        List<Subject> allSubjects = subjectDAO.getAllSubjects();
+
+        for (Student student : students) {
+            StudentGradeSummary summary = new StudentGradeSummary(
+                    student.getStudentId(),
+                    student.getStudentName(),
+                    student.getClassName()
+            );
+
+            // 获取该学生的所有学科成绩
+            List<Score> studentScores = scoreDAO.getScoresByStudent(student.getStudentId());
+
+            // 累加各科成绩
+            for (Score score : studentScores) {
+                summary.addSubjectGrade(score.getUsualGrade(), score.getExamGrade(), score.getTotalGrade());
+            }
+
+            // 计算平均值
+            summary.calculateAverages();
+            allStudentGrades.add(summary);
+        }
+
+        // 按平均总成绩排序（降序）
+        allStudentGrades.sort((s1, s2) -> {
+            BigDecimal t1 = s1.getTotalGrade();
+            BigDecimal t2 = s2.getTotalGrade();
+            if (t1 == null && t2 == null) return 0;
+            if (t1 == null) return 1;
+            if (t2 == null) return -1;
+            return t2.compareTo(t1);
+        });
+
         refreshTableWithPagination();
     }
 
@@ -371,11 +445,11 @@ public class ShowTotalGrade {
      * 带分页的刷新表格数据
      */
     private void refreshTableWithPagination() {
-        if (allStudents == null) {
-            allStudents = new ArrayList<>();
+        if (allStudentGrades == null) {
+            allStudentGrades = new ArrayList<>();
         }
 
-        totalCount = allStudents.size();
+        totalCount = allStudentGrades.size();
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
 
         // 确保当前页在有效范围内
@@ -389,18 +463,18 @@ public class ShowTotalGrade {
         updatePaginationInfo(totalPages);
 
         // 获取当前页的数据
-        List<Student> currentPageStudents = new ArrayList<>();
+        List<StudentGradeSummary> currentPageGrades = new ArrayList<>();
         if (currentPage > 0) {
             int startIndex = (currentPage - 1) * pageSize;
             int endIndex = Math.min(startIndex + pageSize, totalCount);
 
             if (startIndex < totalCount) {
-                currentPageStudents = allStudents.subList(startIndex, endIndex);
+                currentPageGrades = allStudentGrades.subList(startIndex, endIndex);
             }
         }
 
         // 刷新表格显示当前页数据
-        refreshTable(currentPageStudents);
+        refreshTable(currentPageGrades);
     }
 
     /**
@@ -431,8 +505,7 @@ public class ShowTotalGrade {
     /**
      * 刷新表格数据
      */
-    private void refreshTable(List<Student> students) {
-        // 检查控件是否有效
+    private void refreshTable(List<StudentGradeSummary> summaries) {
         if (gradeTable.isDisposed()) {
             return;
         }
@@ -441,48 +514,35 @@ public class ShowTotalGrade {
         gradeTable.removeAll();
 
         // 添加数据行
-        for (Student student : students) {
+        for (StudentGradeSummary summary : summaries) {
             TableItem item = new TableItem(gradeTable, SWT.NONE);
-            item.setText(0, student.getStudentId());
-            item.setText(1, student.getStudentName());
-            item.setText(2, student.getClassName());
+            item.setText(0, summary.getStudentId());
+            item.setText(1, summary.getStudentName());
+            item.setText(2, summary.getClassName());
 
-            // 显示平时成绩，如果没有则为空
-            if (student.getUsualGrade() != null) {
-                item.setText(3, String.format("%.1f", student.getUsualGrade()));
+            // 显示平均平时成绩
+            if (summary.getUsualGrade() != null) {
+                item.setText(3, String.format("%.2f", summary.getUsualGrade()));
             } else {
                 item.setText(3, "-");
             }
 
-            // 显示考试成绩，如果没有则为空
-            if (student.getExamGrade() != null) {
-                item.setText(4, String.format("%.1f", student.getExamGrade()));
+            // 显示平均考试成绩
+            if (summary.getExamGrade() != null) {
+                item.setText(4, String.format("%.2f", summary.getExamGrade()));
             } else {
                 item.setText(4, "-");
             }
 
-            // 显示总成绩，优先从数据库获取，如果没有则计算
-            BigDecimal totalGrade = null;
-
-            // 首先尝试从数据库获取已计算好的总成绩
-            if (student.getTotalGrade() != null) {
-                totalGrade = student.getTotalGrade();
-            }
-            // 如果数据库中没有总成绩，但平时成绩和考试成绩都有，则计算
-            else if (student.getUsualGrade() != null && student.getExamGrade() != null) {
-                // 计算总成绩：平时成绩*0.4 + 考试成绩*0.6
-                totalGrade = student.getUsualGrade().multiply(new BigDecimal("0.4"))
-                        .add(student.getExamGrade().multiply(new BigDecimal("0.6")));
-
-                // 将计算后的总成绩更新到数据库（如果需要）
-                // 注意：这里不直接更新数据库，由成绩管理界面更新
-            }
-
-            if (totalGrade != null) {
-                item.setText(5, String.format("%.2f", totalGrade));
+            // 显示平均总成绩
+            if (summary.getTotalGrade() != null) {
+                item.setText(5, String.format("%.2f", summary.getTotalGrade()));
             } else {
                 item.setText(5, "-");
             }
+
+            // 显示学科数量
+            item.setText(6, String.valueOf(summary.getSubjectCount()));
         }
 
         // 刷新表格并调整列宽

@@ -3,7 +3,7 @@ package Entity;
 public class User {
     private Integer id;
     private String username;
-    private String password;
+    private String password;  // 改为String类型
 
     public User() {
     }
@@ -21,12 +21,12 @@ public class User {
         this.id = id;
     }
 
-    public String getName() {
+    public String getUsername() {
         return username;
     }
 
-    public void setName(String name) {
-        this.username = name;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPassword() {
@@ -41,7 +41,7 @@ public class User {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", name='" + username + '\'' +
+                ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 '}';
     }

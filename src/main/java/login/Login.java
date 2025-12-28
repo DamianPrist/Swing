@@ -19,7 +19,6 @@ import register.Register;
 
 /**
  * SWT login 界面
- * @author SUNRISE / Gemini / echo-escape
  */
 public class Login {
 
@@ -73,10 +72,10 @@ public class Login {
      */
     protected void createContents() {
         shell = new Shell(SWT.CLOSE | SWT.TITLE | SWT.MIN);
-        shell.setSize(650, 550); // 增大窗口尺寸
+        shell.setSize(650, 550);
         shell.setText("用户登录");
 
-        // 初始化颜色方案 - 现代浅色主题
+        // 初始化颜色方案
         Display display = Display.getCurrent();
         primaryColor = new Color(display, 74, 144, 226);
         secondaryColor = new Color(display, 250, 250, 252);
@@ -86,7 +85,7 @@ public class Login {
 
         shell.setBackground(bgColor);
 
-        // 使用GridLayout替代绝对布局
+        // 使用GridLayout
         GridLayout shellLayout = new GridLayout(1, false);
         shellLayout.marginWidth = 0;
         shellLayout.marginHeight = 0;
@@ -101,7 +100,7 @@ public class Login {
             textFieldBgColor.dispose();
         });
 
-        // 创建渐变背景的Composite（模拟现代卡片效果）
+        // 创建渐变背景的Composite
         Composite headerComposite = new Composite(shell, SWT.NONE);
         headerComposite.setBackground(primaryColor);
         GridData headerData = new GridData(SWT.FILL, SWT.TOP, true, false);
@@ -123,7 +122,7 @@ public class Login {
         labelTitle.setBackground(primaryColor);
         labelTitle.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
 
-        // 主内容区域 - 使用GridLayout
+        // 主内容区域
         Composite mainComposite = new Composite(shell, SWT.NONE);
         mainComposite.setBackground(bgColor);
         GridData mainData = new GridData(SWT.CENTER, SWT.CENTER, true, true);
@@ -269,7 +268,7 @@ public class Login {
         footerComposite.setLayout(footerLayout);
 
         Label footerLabel = new Label(footerComposite, SWT.CENTER);
-        footerLabel.setText("© 2024 学生成绩管理系统");
+        footerLabel.setText("© 2025 学生成绩管理系统");
         footerLabel.setForeground(new Color(display, 153, 153, 153));
         footerLabel.setFont(new Font(display, "微软雅黑", 11, SWT.NORMAL));
         footerLabel.setBackground(bgColor);
@@ -321,10 +320,10 @@ public class Login {
     private void handleLogin() {
         String userType = userTypeCombo.getText();
         String username = textUser.getText().trim();
-        String password = textPassword.getText();
+        String passwordStr = textPassword.getText();
 
         // 输入验证
-        if (username.isEmpty() || password.isEmpty()) {
+        if (username.isEmpty() || passwordStr.isEmpty()) {
             showMessage("错误", "请输入用户名/学号和密码！", SWT.ICON_ERROR);
             return;
         }
@@ -332,10 +331,10 @@ public class Login {
         try {
             if ("学生".equals(userType)) {
                 // 学生登录：使用学号和密码验证
-                handleStudentLogin(username, password);
+                handleStudentLogin(username, passwordStr);
             } else {
                 // 教师登录：使用用户名和密码验证
-                handleTeacherLogin(username, password);
+                handleTeacherLogin(username, passwordStr);
             }
         } catch (Exception e) {
             showMessage("错误", "登录过程中出现错误：" + e.getMessage(), SWT.ICON_ERROR);
@@ -365,22 +364,26 @@ public class Login {
     }
 
     /**
-     * 处理教师登录
+     * 处理教师登录 - 修改为String类型密码
      */
     private void handleTeacherLogin(String username, String password) {
-        currentUser = userDAO.validateUser(username, password);
-        if (currentUser != null) {
-            showMessage("成功", "教师登录成功！", SWT.ICON_INFORMATION);
+        try {
+            currentUser = userDAO.validateUser(username, password);
+            if (currentUser != null) {
+                showMessage("成功", "教师登录成功！", SWT.ICON_INFORMATION);
 
-            // 关闭登录窗口
-            shell.dispose();
+                // 关闭登录窗口
+                shell.dispose();
 
-            // 启动教师主界面
-            MainInterface mainInterface = new MainInterface();
-            mainInterface.setCurrentUser(currentUser);
-            mainInterface.open();
-        } else {
-            showMessage("失败", "登录失败，请检查用户名和密码！", SWT.ICON_ERROR);
+                // 启动教师主界面
+                MainInterface mainInterface = new MainInterface();
+                mainInterface.setCurrentUser(currentUser);
+                mainInterface.open();
+            } else {
+                showMessage("失败", "登录失败，请检查用户名和密码！", SWT.ICON_ERROR);
+            }
+        } catch (Exception e) {
+            showMessage("错误", "登录过程中出现错误：" + e.getMessage(), SWT.ICON_ERROR);
         }
     }
 

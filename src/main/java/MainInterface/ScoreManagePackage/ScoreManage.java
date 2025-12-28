@@ -1,122 +1,96 @@
 package MainInterface.ScoreManagePackage;
 
 import DAO.ScoreDAO;
-import Entity.Student;
+import DAO.SubjectDAO;
+import Entity.Score;
+import Entity.Subject;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * 成绩管理后端逻辑类
- * 处理成绩数据的增删改查操作
- */
 public class ScoreManage {
 
     private ScoreDAO scoreDAO;
-    private String currentFilterType = "all"; // 默认显示全部
+    private SubjectDAO subjectDAO;
 
     public ScoreManage() {
         this.scoreDAO = new ScoreDAO();
+        this.subjectDAO = new SubjectDAO();
     }
 
     /**
-     * 设置当前筛选类型
-     * @param filterType all-全部, usual-平时成绩, exam-考试成绩
+     * 获取所有学科
      */
-    public void setCurrentFilterType(String filterType) {
-        this.currentFilterType = filterType;
+    public List<Subject> getAllSubjects() {
+        return subjectDAO.getAllSubjects();
     }
 
     /**
-     * 获取当前筛选类型
+     * 获取某学科所有学生成绩
      */
-    public String getCurrentFilterType() {
-        return currentFilterType;
+    public List<Score> getScoresBySubject(String subjectName) {
+        Integer subjectId = subjectDAO.getSubjectIdByName(subjectName);
+        if (subjectId == null) return null;
+        return scoreDAO.getScoresBySubject(subjectId);
     }
 
     /**
-     * 获取所有成绩记录（带筛选）
+     * 获取学生所有学科成绩
      */
-    public List<Student> getAllScoreRecords() {
-        try {
-            return scoreDAO.getScoreRecordsByType(currentFilterType);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    public List<Score> getScoresByStudent(String studentId) {
+        return scoreDAO.getScoresByStudent(studentId);
     }
 
     /**
-     * 搜索成绩记录（带筛选）
+     * 添加或更新成绩
      */
-    public List<Student> searchScoreRecords(String keyword) {
-        try {
-            return scoreDAO.searchScoreRecordsByType(keyword, currentFilterType);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+    public boolean addOrUpdateScore(String studentId, String subjectName, BigDecimal usualGrade, BigDecimal examGrade) {
+        Integer subjectId = subjectDAO.getSubjectIdByName(subjectName);
+        if (subjectId == null) return false;
+        return scoreDAO.addOrUpdateScore(studentId, subjectId, usualGrade, examGrade);
     }
 
     /**
-     * 添加成绩记录
+     * 删除成绩
      */
-    public boolean addScore(String studentId, String scoreType, BigDecimal score) {
-        try {
-            return scoreDAO.addScore(studentId, scoreType, score);
-        } catch (Exception e) {
-            e.printStackTrace();
+    public boolean deleteScore(String studentId, String subjectName) {
+        Integer subjectId = subjectDAO.getSubjectIdByName(subjectName);
+        if (subjectId == null) return false;
+        return scoreDAO.deleteScore(studentId, subjectId);
+    }
+
+    /**
+     * 获取学生某学科成绩
+     */
+    public Score getScoreByStudentAndSubject(String studentId, String subjectName) {
+        Integer subjectId = subjectDAO.getSubjectIdByName(subjectName);
+        if (subjectId == null) return null;
+        return scoreDAO.getScoreByStudentAndSubject(studentId, subjectId);
+    }
+
+    /**
+     * 获取成绩值（适配原有接口）
+     */
+    public BigDecimal getScoreByStudentIdAndType(String studentId, String scoreType, String subjectName) {
+        return scoreDAO.getScoreByStudentIdAndType(studentId, scoreType, subjectName);
+    }
+
+    /**
+     * 新增：批量删除某学科的所有成绩（级联删除核心方法）
+     * @param subjectName 学科名称
+     * @return 批量删除是否成功
+     */
+    public boolean deleteAllScoresBySubject(String subjectName) {
+        // 1. 沿用现有逻辑：先通过学科名称获取学科ID（保证与成绩表的关联正确性）
+        Integer subjectId = subjectDAO.getSubjectIdByName(subjectName);
+
+        // 2. 校验学科ID有效性（学科不存在则直接返回失败）
+        if (subjectId == null) {
             return false;
         }
+
+        // 3. 调用ScoreDAO的批量删除方法（后续需完善ScoreDAO对应方法）
+        return scoreDAO.deleteAllScoresBySubject(subjectId);
     }
 
-    /**
-     * 编辑成绩记录
-     */
-    public boolean editScore(String studentId, String scoreType, BigDecimal score) {
-        try {
-            return scoreDAO.editScore(studentId, scoreType, score);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * 删除成绩记录
-     */
-    public boolean deleteScore(String studentId, String scoreType) {
-        try {
-            return scoreDAO.deleteScore(studentId, scoreType);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * 获取学生姓名
-     */
-    public String getStudentNameById(String studentId) {
-        try {
-            DAO.StudentDAO studentDAO = new DAO.StudentDAO();
-            Student student = studentDAO.getStudentById(studentId);
-            return student != null ? student.getStudentName() : null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * 获取成绩值
-     */
-    public BigDecimal getScoreByStudentIdAndType(String studentId, String scoreType) {
-        try {
-            return scoreDAO.getScoreByStudentIdAndType(studentId, scoreType);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 }

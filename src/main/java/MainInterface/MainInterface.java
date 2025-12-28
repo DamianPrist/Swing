@@ -1,7 +1,7 @@
 package MainInterface;
 
 import Entity.User;
-import MainInterface.ScoreManagePackage.ShowScoreManage;
+import MainInterface.ScoreManagePackage.ShowScoreManage_MultiSubject;
 import MainInterface.StudentManagePackage.ShowStudentManage;
 import MainInterface.TotalGradeManagePackage.ShowTotalGrade;
 import login.Login;
@@ -15,6 +15,7 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
+import MainInterface.TeacherManagePackage.TeacherManage;
 
 /**
  * 系统主界面
@@ -210,6 +211,15 @@ public class MainInterface {
             }
         });
 
+        // ========== 新增：更改密码按钮 ==========
+        Button btnChangePwd = createSidebarButton(parent, "更改密码", new Color(Display.getCurrent(), 156, 39, 176));
+        btnChangePwd.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                handleChangePassword(); // 处理更改密码逻辑
+            }
+        });
+
         // 添加空白区域使退出按钮在底部
         Label spacer = new Label(parent, SWT.NONE);
         spacer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -333,10 +343,7 @@ public class MainInterface {
 
         contentArea.layout();
     }
-
-    /**
-     * 显示学生管理界面
-     */
+    
     /**
      * 显示学生管理界面
      */
@@ -364,7 +371,7 @@ public class MainInterface {
         for (Control control : contentArea.getChildren()) {
             control.dispose();
         }
-        new ShowScoreManage(contentArea);
+        new ShowScoreManage_MultiSubject(contentArea);
 
         contentArea.layout();
     }
@@ -382,6 +389,7 @@ public class MainInterface {
         new ShowTotalGrade(contentArea);
         contentArea.layout();
     }
+
 
     /**
      * 处理退出登录
@@ -418,4 +426,218 @@ public class MainInterface {
         if (sidebarColor != null) sidebarColor.dispose();
         if (contentBgColor != null) contentBgColor.dispose();
     }
+
+    /**
+     * 处理更改密码逻辑（弹出自定义弹窗，完成密码修改）
+     */
+    private void handleChangePassword() {
+        // 1. 校验当前用户是否存在（登录后应非空，做容错处理）
+        if (currentUser == null) {
+            MessageBox tipBox = new MessageBox(shell, SWT.ICON_INFORMATION | SWT.OK);
+            tipBox.setText("提示");
+            tipBox.setMessage("当前未获取到用户信息，无法修改密码！");
+            tipBox.open();
+            return;
+        }
+
+        // 2. 创建更改密码弹窗（模态窗口，阻塞主界面操作）
+        Shell pwdShell = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL | SWT.CLOSE);
+        pwdShell.setText("修改登录密码");
+        pwdShell.setSize(450, 350);
+        pwdShell.setBackground(bgColor);
+
+        // 弹窗居中显示（与主界面居中逻辑一致）
+        Display display = Display.getCurrent();
+        Rectangle screenSize = display.getPrimaryMonitor().getBounds();
+        Rectangle shellSize = pwdShell.getBounds();
+        pwdShell.setLocation(
+                (screenSize.width - shellSize.width) / 2,
+                (screenSize.height - shellSize.height) / 2
+        );
+
+        // 3. 弹窗布局设置（GridLayout，4行2列）
+        GridLayout pwdLayout = new GridLayout(2, false);
+        pwdLayout.marginWidth = 50;
+        pwdLayout.marginHeight = 40;
+        pwdLayout.verticalSpacing = 25;
+        pwdLayout.horizontalSpacing = 20;
+        pwdShell.setLayout(pwdLayout);
+
+        // 4. 创建弹窗输入项和标签
+        // 4.1 原密码
+        Label lblOldPwd = new Label(pwdShell, SWT.NONE);
+        lblOldPwd.setText("原密码：");
+        lblOldPwd.setFont(new Font(display, "微软雅黑", 14, SWT.NORMAL));
+        lblOldPwd.setBackground(bgColor);
+
+        Text txtOldPwd = new Text(pwdShell, SWT.BORDER | SWT.PASSWORD);
+        txtOldPwd.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        txtOldPwd.setFont(new Font(display, "微软雅黑", 14, SWT.NORMAL));
+        txtOldPwd.setForeground(primaryColor);
+
+        // 4.2 新密码
+        Label lblNewPwd = new Label(pwdShell, SWT.NONE);
+        lblNewPwd.setText("新密码：");
+        lblNewPwd.setFont(new Font(display, "微软雅黑", 14, SWT.NORMAL));
+        lblNewPwd.setBackground(bgColor);
+
+        Text txtNewPwd = new Text(pwdShell, SWT.BORDER | SWT.PASSWORD);
+        txtNewPwd.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        txtNewPwd.setFont(new Font(display, "微软雅黑", 14, SWT.NORMAL));
+        txtNewPwd.setForeground(primaryColor);
+
+        // 4.3 确认新密码
+        Label lblConfirmPwd = new Label(pwdShell, SWT.NONE);
+        lblConfirmPwd.setText("确认新密码：");
+        lblConfirmPwd.setFont(new Font(display, "微软雅黑", 14, SWT.NORMAL));
+        lblConfirmPwd.setBackground(bgColor);
+
+        Text txtConfirmPwd = new Text(pwdShell, SWT.BORDER | SWT.PASSWORD);
+        txtConfirmPwd.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        txtConfirmPwd.setFont(new Font(display, "微软雅黑", 14, SWT.NORMAL));
+        txtConfirmPwd.setForeground(primaryColor);
+
+        // 4.4 操作按钮（确认/取消）
+        Composite btnComposite = new Composite(pwdShell, SWT.NONE);
+        btnComposite.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false, 2, 1));
+        btnComposite.setBackground(bgColor);
+        GridLayout btnLayout = new GridLayout(2, false);
+        btnLayout.horizontalSpacing = 30;
+        btnComposite.setLayout(btnLayout);
+
+        Button btnConfirm = new Button(btnComposite, SWT.PUSH);
+        btnConfirm.setText("确认修改");
+        btnConfirm.setBackground(accentColor);
+        btnConfirm.setForeground(display.getSystemColor(SWT.COLOR_WHITE));
+        btnConfirm.setFont(new Font(display, "微软雅黑", 14, SWT.BOLD));
+        GridData btnConfirmData = new GridData(SWT.FILL, SWT.FILL, false, false);
+        btnConfirmData.widthHint = 120;
+        btnConfirmData.heightHint = 40;
+        btnConfirm.setLayoutData(btnConfirmData);
+
+        Button btnCancel = new Button(btnComposite, SWT.PUSH);
+        btnCancel.setText("取消");
+        btnCancel.setBackground(secondaryColor);
+        btnCancel.setForeground(display.getSystemColor(SWT.COLOR_BLACK));
+        btnCancel.setFont(new Font(display, "微软雅黑", 14, SWT.BOLD));
+        GridData btnCancelData = new GridData(SWT.FILL, SWT.FILL, false, false);
+        btnCancelData.widthHint = 120;
+        btnCancelData.heightHint = 40;
+        btnCancel.setLayoutData(btnCancelData);
+
+        // 5. 确认按钮点击事件（核心校验逻辑）
+        btnConfirm.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                // 5.1 获取输入值并去除首尾空格
+                String oldPwd = txtOldPwd.getText().trim();
+                String newPwd = txtNewPwd.getText().trim();
+                String confirmPwd = txtConfirmPwd.getText().trim();
+
+                // 5.2 输入非空校验
+                if (oldPwd.isEmpty() || newPwd.isEmpty() || confirmPwd.isEmpty()) {
+                    MessageBox errorBox = new MessageBox(pwdShell, SWT.ICON_ERROR | SWT.OK);
+                    errorBox.setText("输入错误");
+                    errorBox.setMessage("所有密码输入项均不能为空，请补充填写！");
+                    errorBox.open();
+                    return;
+                }
+
+                // 5.3 原密码正确性校验（需确保User类有getPassword()方法）
+                if (!oldPwd.equals(currentUser.getPassword())) {
+                    MessageBox errorBox = new MessageBox(pwdShell, SWT.ICON_ERROR | SWT.OK);
+                    errorBox.setText("验证失败");
+                    errorBox.setMessage("原密码输入错误，请重新输入！");
+                    errorBox.open();
+                    txtOldPwd.setText(""); // 清空原密码输入框
+                    txtOldPwd.setFocus(); // 聚焦原密码输入框
+                    return;
+                }
+
+                // 5.4 新密码长度校验（建议6-16位）
+                if (newPwd.length() < 6 || newPwd.length() > 16) {
+                    MessageBox errorBox = new MessageBox(pwdShell, SWT.ICON_ERROR | SWT.OK);
+                    errorBox.setText("格式错误");
+                    errorBox.setMessage("新密码长度需在6-16位之间，请调整！");
+                    errorBox.open();
+                    txtNewPwd.setText(""); // 清空新密码输入框
+                    txtConfirmPwd.setText(""); // 清空确认密码输入框
+                    txtNewPwd.setFocus(); // 聚焦新密码输入框
+                    return; // 修复原方法遗漏的return，避免后续逻辑继续执行
+                }
+
+                // 5.5 新密码与确认密码一致性校验
+                if (!newPwd.equals(confirmPwd)) {
+                    MessageBox errorBox = new MessageBox(pwdShell, SWT.ICON_ERROR | SWT.OK);
+                    errorBox.setText("验证失败");
+                    errorBox.setMessage("新密码与确认密码不一致，请重新输入！");
+                    errorBox.open();
+                    txtNewPwd.setText(""); // 清空新密码输入框
+                    txtConfirmPwd.setText(""); // 清空确认密码输入框
+                    txtNewPwd.setFocus(); // 聚焦新密码输入框
+                    return;
+                }
+
+                // 5.6 密码修改：先更新内存，再通过服务类完成数据库持久化（解耦DAO层）
+                currentUser.setPassword(newPwd); // 需确保User类有setPassword()方法
+
+                // 实例化密码服务类，调用持久化方法（需导入Service.UserPasswordService）
+                TeacherManage passwordService = new TeacherManage();
+                boolean persistSuccess = passwordService.updateUserPassword(currentUser.getUsername(), newPwd);
+
+                // 5.7 根据持久化结果给出友好反馈
+                MessageBox resultBox;
+                if (persistSuccess) {
+                    resultBox = new MessageBox(pwdShell, SWT.ICON_INFORMATION | SWT.OK);
+                    resultBox.setText("修改成功");
+                    resultBox.setMessage("密码修改成功！请使用新密码下次登录。");
+                } else {
+                    resultBox = new MessageBox(pwdShell, SWT.ICON_WARNING | SWT.OK);
+                    resultBox.setText("修改警告");
+                    resultBox.setMessage("内存中密码已更新，但数据库持久化失败！请稍后重试。");
+                }
+                resultBox.open();
+                pwdShell.dispose(); // 关闭密码修改弹窗
+            }
+        });
+
+        // 6. 取消按钮点击事件（关闭弹窗）
+        btnCancel.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                pwdShell.dispose(); // 关闭密码修改弹窗
+            }
+        });
+
+        // 7. 弹窗资源释放（字体、颜色）- 修复原方法无效的Color释放
+        pwdShell.addDisposeListener(e -> {
+            lblOldPwd.getFont().dispose();
+            txtOldPwd.getFont().dispose();
+            lblNewPwd.getFont().dispose();
+            txtNewPwd.getFont().dispose();
+            lblConfirmPwd.getFont().dispose();
+            txtConfirmPwd.getFont().dispose();
+            btnConfirm.getFont().dispose();
+            btnCancel.getFont().dispose();
+            // 移除原无效代码：new Color(display, 156, 39, 176).dispose();
+            // 该颜色是侧边栏按钮的，已在全局资源释放中处理，弹窗中无需重复创建和释放
+        });
+
+        // 8. 打开弹窗并布局
+        pwdShell.open();
+        pwdShell.layout();
+        while (!pwdShell.isDisposed()) {
+            if (!display.readAndDispatch()) {
+                display.sleep();
+            }
+        }
+    }
+
+
 }
+
+
+
+
+
+

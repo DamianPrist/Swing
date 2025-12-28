@@ -1,6 +1,8 @@
 package MainInterface.StudentManagePackage;
 
 import Entity.Student;
+import Entity.User;
+import MainInterface.TeacherManagePackage.TeacherManage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -25,6 +27,9 @@ public class ShowStudentManage {
     private Text searchText;
     private List<TableEditor> tableEditors; // 保存所有的表格编辑器以便清理
 
+    private User currentUser; // 当前登录用户（用于密码校验和持久化）
+    private TeacherManage passwordService = new TeacherManage(); // 密码服务类（解耦DAO）
+
     // 分页相关变量
     private int currentPage = 1; // 当前页码
     private int pageSize = 10;   // 每页显示条数
@@ -36,6 +41,7 @@ public class ShowStudentManage {
     private Button prevPageButton;
     private Button nextPageButton;
     private Composite paginationComposite;
+
 
     public ShowStudentManage(Composite parent) {
         this.parent = parent;

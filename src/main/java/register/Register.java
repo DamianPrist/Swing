@@ -266,7 +266,6 @@ public class Register {
             showMessageBox("错误", "注册过程中出现错误：" + e.getMessage(), SWT.ICON_ERROR);
         }
     }
-
     // 显示弹窗的辅助方法
     private void showMessageBox(String title, String message, int style) {
         MessageBox mb = new MessageBox(shell, style | SWT.OK);

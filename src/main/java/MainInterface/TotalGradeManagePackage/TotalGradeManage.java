@@ -1,87 +1,202 @@
-package MainInterface.TotalGradeManagePackage;
 
+        package MainInterface.TotalGradeManagePackage;
+
+import DAO.ScoreDAO;
 import DAO.StudentDAO;
+import DAO.SubjectDAO;
+import Entity.Score;
 import Entity.Student;
+import Entity.Subject;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 总成绩管理后端逻辑类
- * 处理学生成绩的查询和排序操作
+ * 总成绩管理后端逻辑类 - 修改为支持多学科汇总
  */
 public class TotalGradeManage {
 
+    private ScoreDAO scoreDAO;
     private StudentDAO studentDAO;
+    private SubjectDAO subjectDAO;
 
     public TotalGradeManage() {
+        this.scoreDAO = new ScoreDAO();
         this.studentDAO = new StudentDAO();
+        this.subjectDAO = new SubjectDAO();
     }
 
     /**
-     * 获取所有学生并按总成绩降序排列
+     * 获取所有学科
      */
-    public List<Student> getAllStudentsOrderByTotalGrade() {
-        try {
-            // 首先获取所有学生
-            List<Student> allStudents = studentDAO.getAllStudents();
-
-            // 对每个学生，如果平时成绩和考试成绩都存在，则计算并更新总成绩
-            for (Student student : allStudents) {
-                recalculateAndUpdateTotalGrade(student);
-            }
-
-            // 重新获取按总成绩排序的学生列表
-            return studentDAO.getAllStudentsOrderByTotalGrade();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+    public List<Subject> getAllSubjects() {
+        return subjectDAO.getAllSubjects();
     }
 
     /**
-     * 根据关键字搜索学生并按总成绩降序排列
+     * 获取所有学生的各科成绩汇总（按平均总成绩排序）
      */
-    public List<Student> searchStudentsOrderByTotalGrade(String keyword) {
-        try {
-            // 首先搜索学生
-            List<Student> students = studentDAO.searchStudents(keyword);
+    public List<Map<String, Object>> getAllStudentsOrderByTotalGrade() {
+        List<Student> allStudents = studentDAO.getAllStudents();
+        List<Subject> allSubjects = subjectDAO.getAllSubjects();
+        List<Map<String, Object>> result = new ArrayList<>();
 
-            // 对每个学生，如果平时成绩和考试成绩都存在，则计算并更新总成绩
-            for (Student student : students) {
-                recalculateAndUpdateTotalGrade(student);
+        for (Student student : allStudents) {
+            Map<String, Object> studentData = new HashMap<>();
+            studentData.put("studentId", student.getStudentId());
+            studentData.put("studentName", student.getStudentName());
+            studentData.put("className", student.getClassName());
+
+            // 获取该学生的所有学科成绩
+            List<Score> studentScores = scoreDAO.getScoresByStudent(student.getStudentId());
+
+            BigDecimal usualSum = BigDecimal.ZERO;
+            BigDecimal examSum = BigDecimal.ZERO;
+            BigDecimal totalSum = BigDecimal.ZERO;
+            int subjectCount = 0;
+
+            for (Score score : studentScores) {
+                if (score.getUsualGrade() != null) {
+                    usualSum = usualSum.add(score.getUsualGrade());
+                }
+                if (score.getExamGrade() != null) {
+                    examSum = examSum.add(score.getExamGrade());
+                }
+                if (score.getTotalGrade() != null) {
+                    totalSum = totalSum.add(score.getTotalGrade());
+                }
+                subjectCount++;
             }
 
-            // 重新获取按总成绩排序的学生列表
-            return studentDAO.searchStudentsOrderByTotalGrade(keyword);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<>();
+            // 计算平均值
+            if (subjectCount > 0) {
+                BigDecimal usualAvg = usualSum.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+                BigDecimal examAvg = examSum.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+                BigDecimal totalAvg = totalSum.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+
+                studentData.put("usualGrade", usualAvg);
+                studentData.put("examGrade", examAvg);
+                studentData.put("totalGrade", totalAvg);
+            } else {
+                studentData.put("usualGrade", null);
+                studentData.put("examGrade", null);
+                studentData.put("totalGrade", null);
+            }
+
+            studentData.put("subjectCount", subjectCount);
+            result.add(studentData);
         }
+
+        // 按平均总成绩排序（降序）
+        result.sort(Comparator.comparing(
+                (Map<String, Object> map) -> {
+                    BigDecimal total = (BigDecimal) map.get("totalGrade");
+                    return total != null ? total : BigDecimal.ZERO;
+                },
+                Comparator.reverseOrder()
+        ));
+
+        return result;
     }
 
     /**
-     * 重新计算并更新总成绩
+     * 搜索学生并按平均总成绩排序
      */
-    private void recalculateAndUpdateTotalGrade(Student student) {
-        try {
-            if (student.getUsualGrade() != null && student.getExamGrade() != null) {
-                // 计算总成绩：平时成绩*0.4 + 考试成绩*0.6
-                BigDecimal usualGrade = student.getUsualGrade();
-                BigDecimal examGrade = student.getExamGrade();
-                BigDecimal totalGrade = usualGrade.multiply(new BigDecimal("0.4"))
-                        .add(examGrade.multiply(new BigDecimal("0.6")));
+    public List<Map<String, Object>> searchStudentsOrderByTotalGrade(String keyword) {
+        List<Student> searchResults = studentDAO.searchStudents(keyword);
+        List<Map<String, Object>> result = new ArrayList<>();
 
-                // 更新学生对象
-                student.setTotalGrade(totalGrade);
+        for (Student student : searchResults) {
+            Map<String, Object> studentData = new HashMap<>();
+            studentData.put("studentId", student.getStudentId());
+            studentData.put("studentName", student.getStudentName());
+            studentData.put("className", student.getClassName());
 
-                // 更新到数据库
-                studentDAO.updateStudentGrade(student);
+            // 获取该学生的所有学科成绩
+            List<Score> studentScores = scoreDAO.getScoresByStudent(student.getStudentId());
+
+            BigDecimal usualSum = BigDecimal.ZERO;
+            BigDecimal examSum = BigDecimal.ZERO;
+            BigDecimal totalSum = BigDecimal.ZERO;
+            int subjectCount = 0;
+
+            for (Score score : studentScores) {
+                if (score.getUsualGrade() != null) {
+                    usualSum = usualSum.add(score.getUsualGrade());
+                }
+                if (score.getExamGrade() != null) {
+                    examSum = examSum.add(score.getExamGrade());
+                }
+                if (score.getTotalGrade() != null) {
+                    totalSum = totalSum.add(score.getTotalGrade());
+                }
+                subjectCount++;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+
+            // 计算平均值
+            if (subjectCount > 0) {
+                BigDecimal usualAvg = usualSum.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+                BigDecimal examAvg = examSum.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+                BigDecimal totalAvg = totalSum.divide(new BigDecimal(subjectCount), 2, RoundingMode.HALF_UP);
+
+                studentData.put("usualGrade", usualAvg);
+                studentData.put("examGrade", examAvg);
+                studentData.put("totalGrade", totalAvg);
+            } else {
+                studentData.put("usualGrade", null);
+                studentData.put("examGrade", null);
+                studentData.put("totalGrade", null);
+            }
+
+            studentData.put("subjectCount", subjectCount);
+            result.add(studentData);
         }
+
+        // 按平均总成绩排序（降序）
+        result.sort(Comparator.comparing(
+                (Map<String, Object> map) -> {
+                    BigDecimal total = (BigDecimal) map.get("totalGrade");
+                    return total != null ? total : BigDecimal.ZERO;
+                },
+                Comparator.reverseOrder()
+        ));
+
+        return result;
     }
 
+    /**
+     * 获取某学科所有学生成绩（按总成绩排序）
+     */
+    public List<Score> getScoresBySubjectOrderByTotal(String subjectName) {
+        Integer subjectId = subjectDAO.getSubjectIdByName(subjectName);
+        if (subjectId == null) return new ArrayList<>();
+        return scoreDAO.getScoresBySubject(subjectId);
+    }
+
+    /**
+     * 搜索某学科学生成绩
+     */
+    public List<Score> searchScoresBySubject(String subjectName, String keyword) {
+        List<Score> allScores = getScoresBySubjectOrderByTotal(subjectName);
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return allScores;
+        }
+
+        keyword = keyword.toLowerCase().trim();
+        List<Score> filteredScores = new ArrayList<>();
+
+        for (Score score : allScores) {
+            if (score.getStudentName().toLowerCase().contains(keyword) ||
+                    score.getStudentId().contains(keyword)) {
+                filteredScores.add(score);
+            }
+        }
+
+        return filteredScores;
+    }
 }

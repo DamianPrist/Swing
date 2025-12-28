@@ -1,21 +1,16 @@
 package Entity;
 
-import java.math.BigDecimal;
-
 public class Student {
     private String studentId;
     private String studentName;
     private String gender;
     private String className;
     private String phone;
-    private BigDecimal usualGrade;
-    private BigDecimal examGrade;
-    private BigDecimal totalGrade;
+    private String password;  // 添加密码字段
 
     public Student() {
     }
 
-    // 修复构造器 - 移除测试用的错误构造器
     public Student(String studentId, String studentName, String gender, String className, String phone) {
         this.studentId = studentId;
         this.studentName = studentName;
@@ -24,24 +19,14 @@ public class Student {
         this.phone = phone;
     }
 
-    public BigDecimal getTotalGrade() {
-        return totalGrade;
-    }
-
-    public void setTotalGrade(BigDecimal totalGrade) {
-        this.totalGrade = totalGrade;
-    }
-
-    // 全参构造器
-    public Student(String studentId, String studentName, String gender, String className, String phone, BigDecimal usualGrade, BigDecimal examGrade) {
+    // 添加密码的构造方法
+    public Student(String studentId, String studentName, String gender, String className, String phone, String password) {
         this.studentId = studentId;
         this.studentName = studentName;
         this.gender = gender;
         this.className = className;
         this.phone = phone;
-        this.usualGrade = usualGrade;
-        this.examGrade = examGrade;
-        this.totalGrade = usualGrade.add(examGrade);
+        this.password = password;
     }
 
     // Getters and Setters
@@ -85,20 +70,12 @@ public class Student {
         this.phone = phone;
     }
 
-    public BigDecimal getUsualGrade() {
-        return usualGrade;
+    public String getPassword() {
+        return password;
     }
 
-    public void setUsualGrade(BigDecimal usualGrade) {
-        this.usualGrade = usualGrade;
-    }
-
-    public BigDecimal getExamGrade() {
-        return examGrade;
-    }
-
-    public void setExamGrade(BigDecimal examGrade) {
-        this.examGrade = examGrade;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     @Override
@@ -109,8 +86,7 @@ public class Student {
                 ", gender='" + gender + '\'' +
                 ", className='" + className + '\'' +
                 ", phone='" + phone + '\'' +
-                ", usualGrade=" + usualGrade +
-                ", examGrade=" + examGrade +
+                ", password='" + (password != null ? "***" : "null") + '\'' +
                 '}';
     }
 }

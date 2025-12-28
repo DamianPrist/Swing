@@ -9,9 +9,9 @@ import java.sql.SQLException;
  */
 public class DatabaseConnection {
     // 数据库连接参数
-    private static final String URL = "jdbc:mysql://mysql5.sqlpub.com:3310/test_lib";
-    private static final String USERNAME = "triangle_test";
-    private static final String PASSWORD = "UDBKy4IHvygHHKrq";
+    private static final String URL = "jdbc:mysql://localhost:3306/grade_manage";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "Sjx060204";
 
     /**
      * 获取数据库连接
