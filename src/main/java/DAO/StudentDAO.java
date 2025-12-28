@@ -27,7 +27,7 @@ public class StudentDAO {
                 preparedStatement.setString(3, student.getGender());
                 preparedStatement.setString(4, student.getClassName());
                 preparedStatement.setString(5, student.getPhone());
-                preparedStatement.setString(6, student.getPassword()); // 添加密码
+                preparedStatement.setString(6, "111111"); // 添加密码
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 return rowsAffected > 0;

@@ -11,7 +11,7 @@ public class DatabaseConnection {
     // 数据库连接参数
     private static final String URL = "jdbc:mysql://localhost:3306/grade_manage";
     private static final String USERNAME = "root";
-    private static final String PASSWORD = "Sjx060204";
+    private static final String PASSWORD = "dy85111168";
 
     /**
      * 获取数据库连接
