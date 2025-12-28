@@ -25,6 +25,7 @@ public class Login {
     private Text textUser;
     private Text textPassword;
     private Combo userTypeCombo;
+    private Label labelUser; // 新增：保存对用户标签的引用
     private Font fontInput;
 
     // 用户数据访问对象
@@ -155,9 +156,9 @@ public class Login {
         comboData.heightHint = 40;
         userTypeCombo.setLayoutData(comboData);
 
-        // 账户标签 - 动态变化
-        Label labelUser = new Label(mainComposite, SWT.NONE);
-        labelUser.setText("学号：");
+        // 账户标签 - 动态变化 (保存引用)
+        labelUser = new Label(mainComposite, SWT.NONE);
+        labelUser.setText("学 号：");
         labelUser.setBackground(bgColor);
         labelUser.setFont(fontLabel);
         labelUser.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
@@ -263,25 +264,22 @@ public class Login {
     }
 
     /**
-     * 更新登录字段的提示信息
+     * 更新登录字段的提示信息 - 修复版
      */
     private void updateLoginFields() {
         String userType = userTypeCombo.getText();
 
-        // 获取用户标签控件
-        for (Control control : textUser.getParent().getChildren()) {
-            if (control instanceof Label && ((Label) control).getText().contains("学号")) {
-                Label labelUser = (Label) control;
-                if ("学生".equals(userType)) {
-                    labelUser.setText("学号：");
-                    textUser.setMessage("请输入学号");
-                } else {
-                    labelUser.setText("用户名：");
-                    textUser.setMessage("请输入用户名");
-                }
-                break;
+        // 直接使用保存的labelUser引用
+        if (labelUser != null && !labelUser.isDisposed()) {
+            if ("学生".equals(userType)) {
+                labelUser.setText("学 号：");
+                textUser.setMessage("请输入学号");
+            } else {
+                labelUser.setText("用户名：");
+                textUser.setMessage("请输入用户名");
             }
         }
+
         textUser.setText("");
         textPassword.setText("");
     }
