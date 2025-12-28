@@ -15,7 +15,6 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
-import register.Register;
 
 /**
  * SWT login 界面
@@ -189,16 +188,16 @@ public class Login {
         pwdData.heightHint = 40;
         textPassword.setLayoutData(pwdData);
 
-        // 按钮容器
+        // 按钮容器 - 现在只包含登录按钮
         Composite buttonComposite = new Composite(mainComposite, SWT.NONE);
         GridData buttonCompositeData = new GridData(SWT.CENTER, SWT.CENTER, true, false);
         buttonCompositeData.horizontalSpan = 2;
         buttonComposite.setLayoutData(buttonCompositeData);
 
-        GridLayout buttonLayout = new GridLayout(2, true);
+        GridLayout buttonLayout = new GridLayout(1, true);
         buttonLayout.marginWidth = 0;
         buttonLayout.marginHeight = 0;
-        buttonLayout.horizontalSpacing = 20;
+        buttonLayout.horizontalSpacing = 0;
         buttonComposite.setLayout(buttonLayout);
 
         // 登录按钮
@@ -225,33 +224,6 @@ public class Login {
             @Override
             public void widgetSelected(SelectionEvent e) {
                 handleLogin();
-            }
-        });
-
-        // 注册按钮
-        Button btnRegister = new Button(buttonComposite, SWT.PUSH);
-        btnRegister.setText("注册账号");
-        btnRegister.setFont(new Font(display, "微软雅黑", 13, SWT.BOLD));
-        btnRegister.setBackground(secondaryColor);
-        btnRegister.setForeground(primaryColor);
-        GridData registerData = new GridData(SWT.CENTER, SWT.CENTER, false, false);
-        registerData.widthHint = 140;
-        registerData.heightHint = 45;
-        btnRegister.setLayoutData(registerData);
-
-        // 添加鼠标悬停效果
-        btnRegister.addListener(SWT.MouseEnter, e -> {
-            btnRegister.setBackground(new Color(display, 240, 242, 245));
-        });
-        btnRegister.addListener(SWT.MouseExit, e -> {
-            btnRegister.setBackground(secondaryColor);
-        });
-
-        // 注册逻辑
-        btnRegister.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                handleRegister();
             }
         });
 
@@ -399,20 +371,6 @@ public class Login {
      */
     public Student getCurrentStudent() {
         return currentStudent;
-    }
-
-    /**
-     * 处理注册事件
-     */
-    private void handleRegister() {
-        // 只有教师可以注册
-        if ("学生".equals(userTypeCombo.getText())) {
-            showMessage("提示", "学生账号由系统管理员统一创建，请咨询管理员获取学号。", SWT.ICON_INFORMATION);
-            return;
-        }
-
-        Register register = new Register();
-        register.open();
     }
 
     /**

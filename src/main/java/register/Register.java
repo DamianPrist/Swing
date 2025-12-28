@@ -2,7 +2,7 @@ package register;
 
 import DAO.UserDAO;
 import Entity.User;
-import connect.DatabaseConnection;
+//import connect.DatabaseConnection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
